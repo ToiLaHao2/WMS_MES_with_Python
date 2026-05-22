@@ -12,7 +12,7 @@ class PathfindingService:
         """
         Lấy bản đồ kho từ Cache (Ưu tiên RAM -> Redis)
         """
-        cache_key = f"warehouse:{warehouse_id}:grid"
+        cache_key = f"warehouse:{warehouse_id}:layout"
         grid = await self.cache.get(cache_key)
         
         if not grid:

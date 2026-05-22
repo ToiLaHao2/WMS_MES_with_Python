@@ -50,6 +50,9 @@ python -m venv .venv
 # Kích hoạt môi trường (Windows)
 .venv\Scripts\activate
 
+# Cập nhật build file proto grpc
+python build_proto.py
+
 # Copy config env và điền thông tin biến môi trường
 cp .env.example .env
 

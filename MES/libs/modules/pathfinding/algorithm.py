@@ -12,7 +12,7 @@ class AStarAlgorithm:
         # Khoảng cách Manhattan: |x1 - x2| + |y1 - y2|
         return abs(a.x - b.x) + abs(a.y - b.y)
 
-    def get_neighbors(self, node: Node) -> List[Node]:
+    def get_neighbors(self, node: Node, end_node: Node) -> List[Node]:
         neighbors = []
         # 4 hướng di chuyển: Lên, Xuống, Trái, Phải
         for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -21,9 +21,11 @@ class AStarAlgorithm:
             # Kiểm tra xem có nằm trong bản đồ không
             if 0 <= nx < self.cols and 0 <= ny < self.rows:
                 # Kiểm tra vật cản (Giá trị 1 là GRID_STORAGE, 2 là GRID_BLOCKED)
-                # Lưu ý: Cấu trúc mảng 2D thường là grid[row][col] tức là grid[y][x]
                 tile_value = self.grid[ny][nx]
-                if tile_value != 1 and tile_value != 2:
+                
+                # Cho phép đi vào nếu nó là ô đích (end_node) dù nó là Storage, 
+                # hoặc nếu nó không phải vật cản
+                if (nx == end_node.x and ny == end_node.y) or (tile_value != 1 and tile_value != 2):
                     neighbors.append(Node(nx, ny))
         return neighbors
 
@@ -55,7 +57,7 @@ class AStarAlgorithm:
 
             closed_list.add(current_node)
 
-            for neighbor in self.get_neighbors(current_node):
+            for neighbor in self.get_neighbors(current_node, end_node):
                 if neighbor in closed_list:
                     continue
 
