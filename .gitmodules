@@ -1,0 +1,3 @@
+[submodule "MES/libs/core/contracts/WMS_Contracts"]
+	path = MES/libs/core/contracts/WMS_Contracts
+	url = https://github.com/ToiLaHao2/WMS_Contracts.git
