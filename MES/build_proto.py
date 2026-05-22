@@ -6,10 +6,10 @@ import sys
 # Bước 1: Chạy lệnh biên dịch proto
 subprocess.run([
     sys.executable, "-m", "grpc_tools.protoc",
-    "-I./libs/core/contracts/Warehouse_management_simulation_Contracts",
+    "-I./libs/core/contracts/WMS_Contracts",
     "--python_out=./libs/core/contracts",
     "--grpc_python_out=./libs/core/contracts",
-    "./libs/core/contracts/Warehouse_management_simulation_Contracts/mes.proto"
+    "./libs/core/contracts/WMS_Contracts/mes.proto"
 ], check=True)
 
 # Bước 2: Tự động fix import trong file _grpc.py
