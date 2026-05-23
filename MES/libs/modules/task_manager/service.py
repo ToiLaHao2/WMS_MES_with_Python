@@ -8,6 +8,7 @@ class DispatchService:
     Trình điều phối AGV — nối Pathfinding thành 1 Execution Plan hoàn chỉnh.
     Chặng 1: AGV vị trí hiện tại -> Điểm lấy hàng (pickup_point / Cửa kho)
     Chặng 2: Điểm lấy hàng -> Slot đích (slot_position)
+    Chặng 3: Slot đích -> Quay về Charging Dock (agv_position ban đầu)
     """
 
     def __init__(self):
@@ -70,9 +71,20 @@ class DispatchService:
             action = "DROP_OFF" if i == len(path_to_slot) - 2 else "MOVE"
             waypoints.append({"x": point[0], "y": point[1], "action": action})
 
-        logger.info(f"[Dispatch] Execution Plan: {len(waypoints)} bước.")
+        # === Chặng 3: AGV quay về Charging Dock (vị trí ban đầu) ===
+        path_to_dock = await self.path_service.get_path_for_warehouse(
+            warehouse_id, slot_position, agv_position
+        )
+
+        if path_to_dock and len(path_to_dock) > 1:
+            # Bỏ điểm đầu (đã có ở cuối chặng 2), tất cả action = RETURN
+            for point in path_to_dock[1:]:
+                waypoints.append({"x": point[0], "y": point[1], "action": "RETURN"})
+
+        logger.info(f"[Dispatch] Execution Plan: {len(waypoints)} bước (bao gồm quay về dock).")
         return {
             "success": True,
             "message": f"Tạo kế hoạch thành công ({len(waypoints)} bước)",
             "waypoints": waypoints,
         }
+

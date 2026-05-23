@@ -106,6 +106,7 @@ class DispatchHandler(mes_pb2_grpc.DispatchServiceServicer):
                 "MOVE": mes_pb2.ActionType.MOVE,
                 "PICK_UP": mes_pb2.ActionType.PICK_UP,
                 "DROP_OFF": mes_pb2.ActionType.DROP_OFF,
+                "RETURN": mes_pb2.ActionType.RETURN,
             }
 
             waypoints = [
