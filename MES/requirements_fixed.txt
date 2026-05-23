@@ -1,0 +1,6 @@
+﻿grpcio==1.80.0
+grpcio-tools==1.80.0
+protobuf==6.33.6
+psycopg2-binary==2.9.12
+redis==7.4.0
+typing_extensions==4.15.0
