@@ -23,9 +23,18 @@ class AStarAlgorithm:
                 # Kiểm tra vật cản (Giá trị 1 là GRID_STORAGE, 2 là GRID_BLOCKED)
                 tile_value = self.grid[ny][nx]
                 
-                # Cho phép đi vào nếu nó là ô đích (end_node) dù nó là Storage, 
-                # hoặc nếu nó không phải vật cản
-                if (nx == end_node.x and ny == end_node.y) or (tile_value != 1 and tile_value != 2):
+                # Kiểm tra ràng buộc di chuyển (Chống đi tắt qua ngã 4)
+                # Tuy nhiên, nếu ô tiếp theo chính là đích đến (end_node) thì được phép rẽ vào để đỗ
+                if not (nx == end_node.x and ny == end_node.y):
+                    current_tile = self.grid[node.y][node.x]
+                    if current_tile == 8 and dx != 0:
+                        continue  # Đang ở đường Dọc, cấm rẽ Ngang
+                    if current_tile == 7 and dy != 0:
+                        continue  # Đang ở đường Ngang, cấm rẽ Dọc
+
+                # Cho phép đi vào nếu nó là ô đích (end_node) dù nó là Storage/Charging, 
+                # hoặc nếu nó là đường đi chính thức (0, 7, 8)
+                if (nx == end_node.x and ny == end_node.y) or tile_value in (0, 7, 8):
                     neighbors.append(Node(nx, ny))
         return neighbors
 
