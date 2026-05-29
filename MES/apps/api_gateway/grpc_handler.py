@@ -90,12 +90,13 @@ class DispatchHandler(mes_pb2_grpc.DispatchServiceServicer):
         agv_pos = (request.agv_position.x, request.agv_position.y)
         pickup = (request.pickup_point.x, request.pickup_point.y)
         slot_pos = (request.slot_position.x, request.slot_position.y)
+        agv_id = request.agv_id
 
-        logger.info(f"gRPC Request: DispatchAGV cho kho {warehouse_id}")
+        logger.info(f"gRPC Request: DispatchAGV cho kho {warehouse_id} (AGV: {agv_id})")
 
         try:
             plan = await self.dispatch_service.create_execution_plan(
-                warehouse_id, agv_pos, pickup, slot_pos
+                warehouse_id, agv_pos, pickup, slot_pos, agv_id=agv_id
             )
 
             if not plan["success"]:

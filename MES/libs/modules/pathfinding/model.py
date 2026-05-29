@@ -5,9 +5,10 @@ from typing import Optional
 class Node:
     x: int
     y: int
-    g: float = 0 # Chi phí từ điểm bắt đầu đến node hiện tại
-    h: float = 0 # Chi phí ước tính từ node hiện tại đến đích (Heuristic)
-    f: float = 0 # f = g + h
+    t: int = 0       # Thời điểm AGV ở tọa độ này (đơn vị: bước di chuyển)
+    g: float = 0     # Chi phí từ điểm bắt đầu đến node hiện tại
+    h: float = 0     # Chi phí ước tính từ node hiện tại đến đích (Heuristic)
+    f: float = 0     # f = g + h
     parent: Optional['Node'] = None
 
     def __lt__(self, other):
@@ -17,8 +18,8 @@ class Node:
     def __eq__(self, other):
         if not isinstance(other, Node):
             return False
-        return self.x == other.x and self.y == other.y
+        return self.x == other.x and self.y == other.y and self.t == other.t
 
     def __hash__(self):
-        # Dùng tọa độ làm hash để kiểm tra trong Set cực nhanh
-        return hash((self.x, self.y))
+        # Dùng tọa độ + thời gian làm hash để phân biệt trạng thái trong không gian 3D
+        return hash((self.x, self.y, self.t))
