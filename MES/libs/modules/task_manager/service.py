@@ -61,13 +61,27 @@ class DispatchService:
             }
 
         # Tất cả các bước di chuyển đến điểm lấy hàng đều là MOVE
+        # Bỏ điểm đầu tiên vì AGV đã ở đó sẵn
         # Trừ bước cuối cùng là PICK_UP
-        for i, point in enumerate(path_to_pickup):
-            action = "PICK_UP" if i == len(path_to_pickup) - 1 else "MOVE"
-            waypoints.append({"x": point[0], "y": point[1], "action": action})
+        for i, point in enumerate(path_to_pickup[1:]):
+            if i == len(path_to_pickup[1:]) - 1:
+                # Tại điểm lấy hàng, tốn 2s để gắp hàng -> cần reserve thêm 2 ô WAIT để khớp với Go manager
+                waypoints.append({"x": point[0], "y": point[1], "action": "PICK_UP"})
+                waypoints.append({"x": point[0], "y": point[1], "action": "WAIT"})
+                waypoints.append({"x": point[0], "y": point[1], "action": "WAIT"})
+            else:
+                waypoints.append({"x": point[0], "y": point[1], "action": "MOVE"})
 
-        # Cập nhật thời gian tích lũy
-        current_time += len(path_to_pickup)
+        # Cập nhật thời gian tích lũy (đã bỏ 1 điểm đầu, cộng thêm 2 giây gắp hàng)
+        current_time += len(path_to_pickup) - 1 + 2
+
+        if use_cooperative:
+            # AGV sẽ đứng yên tại pickup_point thêm 2 giây (vì action = PICK_UP tốn 2s trong Go)
+            # Cần reserve vị trí này để tránh AGV khác đâm vào
+            await self.path_service.reserve_path(
+                warehouse_id, agv_id, [pickup_point, pickup_point], start_time=current_time
+            )
+            current_time += 2
 
         # === Chặng 2: AGV đi từ điểm lấy hàng tới Slot đích ===
         if use_cooperative:
@@ -90,11 +104,23 @@ class DispatchService:
 
         # Bỏ điểm đầu tiên (đã có ở cuối chặng 1 rồi), trừ bước cuối là DROP_OFF
         for i, point in enumerate(path_to_slot[1:]):
-            action = "DROP_OFF" if i == len(path_to_slot) - 2 else "MOVE"
-            waypoints.append({"x": point[0], "y": point[1], "action": action})
+            if i == len(path_to_slot[1:]) - 1:
+                # Tại điểm cất hàng, tốn 2s để cất hàng
+                waypoints.append({"x": point[0], "y": point[1], "action": "DROP_OFF"})
+                waypoints.append({"x": point[0], "y": point[1], "action": "WAIT"})
+                waypoints.append({"x": point[0], "y": point[1], "action": "WAIT"})
+            else:
+                waypoints.append({"x": point[0], "y": point[1], "action": "MOVE"})
 
         # Cập nhật thời gian tích lũy
         current_time += len(path_to_slot) - 1
+
+        if use_cooperative:
+            # AGV đứng yên tại slot_position thêm 2 giây (vì action = DROP_OFF tốn 2s trong Go)
+            await self.path_service.reserve_path(
+                warehouse_id, agv_id, [slot_position, slot_position], start_time=current_time
+            )
+            current_time += 2
 
         # === Chặng 3: AGV quay về Charging Dock (vị trí ban đầu) ===
         if use_cooperative:
