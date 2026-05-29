@@ -163,11 +163,13 @@ class DispatchHandler(mes_pb2_grpc.DispatchServiceServicer):
             action_str = action_names.get(m.action, "MOVE")
             milestones.append((m.position.x, m.position.y, action_str))
             
-        logger.info(f"gRPC Request: ReplanAGV cho kho {warehouse_id} (AGV: {agv_id}) từ {current_pos}")
+        obstacles = [(obs.x, obs.y) for obs in request.obstacles]
+
+        logger.info(f"gRPC Request: ReplanAGV cho kho {warehouse_id} (AGV: {agv_id}) từ {current_pos}. Vật cản: {obstacles}")
 
         try:
             plan = await self.dispatch_service.replan_execution_plan(
-                warehouse_id, agv_id, current_pos, milestones
+                warehouse_id, agv_id, current_pos, milestones, obstacles
             )
 
             if not plan["success"]:

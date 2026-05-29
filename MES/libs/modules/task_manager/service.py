@@ -150,9 +150,10 @@ class DispatchService:
         warehouse_id: str,
         agv_id: str,
         current_position: Tuple[int, int],
-        milestones: List[Tuple[int, int, str]]
+        milestones: List[Tuple[int, int, str]],
+        obstacles: List[Tuple[int, int]] = None
     ) -> dict:
-        logger.info(f"[Replan] AGV {agv_id} at {current_position}. Milestones: {milestones}")
+        logger.info(f"[Replan] AGV {agv_id} at {current_position}. Milestones: {milestones}. Obstacles: {obstacles}")
         
         # 1. Clear old reservations
         await self.path_service.clear_reservation(warehouse_id, agv_id)
@@ -167,7 +168,7 @@ class DispatchService:
         for (mx, my, action) in milestones:
             target_pos = (mx, my)
             path = await self.path_service.get_cooperative_path(
-                warehouse_id, agv_id, prev_pos, target_pos, start_time=current_time
+                warehouse_id, agv_id, prev_pos, target_pos, start_time=current_time, obstacles=obstacles
             )
             
             if not path:

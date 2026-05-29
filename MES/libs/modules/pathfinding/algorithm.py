@@ -146,7 +146,7 @@ class TimeSpaceAStarAlgorithm:
                      agv_id: str) -> bool:
         """Kiểm tra ô (x, y) tại thời điểm t đã bị AGV khác đặt chỗ chưa."""
         occupant = reservation_table.get((x, y, t))
-        if occupant is not None and occupant != agv_id:
+        if occupant is not None and occupant != agv_id and occupant != "PHYSICAL_OBSTACLE":
             return True
         return False
 
@@ -244,7 +244,7 @@ class TimeSpaceAStarAlgorithm:
             next_t = current.t + 1
 
             # ═══ Sinh các neighbor: 4 hướng di chuyển + 1 hành động WAIT ═══
-            candidates: List[Node] = []
+            candidates: List[Tuple[Node, float]] = []
 
             # --- 4 hướng di chuyển ---
             for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -254,25 +254,31 @@ class TimeSpaceAStarAlgorithm:
                     continue
                 if not self._check_turn_constraint(current.x, current.y, dx, dy, end_node):
                     continue
-                # Kiểm tra reservation table
+                # Kiểm tra reservation table (Hard block)
                 if self._is_reserved(nx, ny, next_t, reservation_table, agv_id):
                     continue
                 # Kiểm tra swap conflict
                 if self._has_swap_conflict(current.x, current.y, nx, ny, current.t, reservation_table, agv_id):
                     continue
 
-                candidates.append(Node(nx, ny, t=next_t))
+                # Soft block penalty cho PHYSICAL_OBSTACLE
+                occupant = reservation_table.get((nx, ny, next_t))
+                penalty = 1000.0 if occupant == "PHYSICAL_OBSTACLE" else 0.0
+
+                candidates.append((Node(nx, ny, t=next_t), penalty))
 
             # --- Hành động WAIT (đứng yên tại chỗ) ---
             consecutive_waits = self._count_consecutive_waits(current)
             if consecutive_waits < self.MAX_WAIT_STEPS:
-                # Chỉ cho phép WAIT nếu ô hiện tại không bị AGV khác chiếm ở thời điểm tiếp theo
+                # Chỉ cho phép WAIT nếu ô hiện tại không bị AGV khác chiếm (ngoại trừ PHYSICAL_OBSTACLE)
                 if not self._is_reserved(current.x, current.y, next_t, reservation_table, agv_id):
+                    occupant = reservation_table.get((current.x, current.y, next_t))
+                    penalty = 1000.0 if occupant == "PHYSICAL_OBSTACLE" else 0.0
                     wait_node = Node(current.x, current.y, t=next_t)
-                    candidates.append(wait_node)
+                    candidates.append((wait_node, penalty))
 
             # ═══ Đánh giá từng candidate ═══
-            for neighbor in candidates:
+            for neighbor, extra_penalty in candidates:
                 n_state = (neighbor.x, neighbor.y, neighbor.t)
                 if n_state in closed_set:
                     continue
@@ -280,7 +286,7 @@ class TimeSpaceAStarAlgorithm:
                 # Chi phí di chuyển = 1, chi phí chờ = 1.5 (khuyến khích di chuyển hơn đứng chờ)
                 is_wait = (neighbor.x == current.x and neighbor.y == current.y)
                 move_cost = 1.5 if is_wait else 1.0
-                tentative_g = g_score.get(state_key, float('inf')) + move_cost
+                tentative_g = g_score.get(state_key, float('inf')) + move_cost + extra_penalty
 
                 if tentative_g < g_score.get(n_state, float('inf')):
                     neighbor.parent = current

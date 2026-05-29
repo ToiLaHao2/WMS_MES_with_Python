@@ -128,6 +128,7 @@ class PathfindingService:
         start: Tuple[int, int],
         end: Tuple[int, int],
         start_time: int = 0,
+        obstacles: List[Tuple[int, int]] = None
     ) -> List[Tuple[int, int]]:
         """
         Tìm đường có phối hợp (Time-Space A*).
@@ -144,9 +145,15 @@ class PathfindingService:
         try:
             # 1. Đọc Reservation Table
             reservation_table = await self.get_reservation_table(warehouse_id)
+            algo = TimeSpaceAStarAlgorithm(grid)
+
+            # 1.5 Inject temporary physical obstacles
+            if obstacles:
+                for obs in obstacles:
+                    for t_step in range(start_time, start_time + algo.MAX_TIME_STEPS):
+                        reservation_table[(obs[0], obs[1], t_step)] = "PHYSICAL_OBSTACLE"
 
             # 2. Chạy Time-Space A*
-            algo = TimeSpaceAStarAlgorithm(grid)
             path = algo.find_path(start, end, reservation_table, agv_id, start_time)
 
             if not path:
