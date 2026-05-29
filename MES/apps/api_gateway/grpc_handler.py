@@ -143,3 +143,57 @@ class DispatchHandler(mes_pb2_grpc.DispatchServiceServicer):
         except Exception as e:
             logger.error(f"Loi gRPC DispatchAGV: {str(e)}")
             return mes_pb2.DispatchResponse(success=False, message=str(e))
+
+    async def ReplanAGV(self, request, context):
+        warehouse_id = request.warehouse_id
+        agv_id = request.agv_id
+        current_pos = (request.current_position.x, request.current_position.y)
+        
+        # Lấy list of tuples (x, y, action_string)
+        # ActionType là enum, ta chuyển lại thành string để truyền vào service
+        action_names = {
+            mes_pb2.ActionType.MOVE: "MOVE",
+            mes_pb2.ActionType.PICK_UP: "PICK_UP",
+            mes_pb2.ActionType.DROP_OFF: "DROP_OFF",
+            mes_pb2.ActionType.RETURN: "RETURN"
+        }
+        
+        milestones = []
+        for m in request.milestones:
+            action_str = action_names.get(m.action, "MOVE")
+            milestones.append((m.position.x, m.position.y, action_str))
+            
+        logger.info(f"gRPC Request: ReplanAGV cho kho {warehouse_id} (AGV: {agv_id}) từ {current_pos}")
+
+        try:
+            plan = await self.dispatch_service.replan_execution_plan(
+                warehouse_id, agv_id, current_pos, milestones
+            )
+
+            if not plan["success"]:
+                return mes_pb2.DispatchResponse(success=False, message=plan["message"])
+
+            action_map = {
+                "MOVE": mes_pb2.ActionType.MOVE,
+                "PICK_UP": mes_pb2.ActionType.PICK_UP,
+                "DROP_OFF": mes_pb2.ActionType.DROP_OFF,
+                "RETURN": mes_pb2.ActionType.RETURN,
+                "WAIT": mes_pb2.ActionType.MOVE # Fallback WAIT as MOVE in protobuf since WAIT is not defined
+            }
+
+            waypoints = [
+                mes_pb2.WaypointAction(
+                    position=mes_pb2.Point(x=wp["x"], y=wp["y"]),
+                    action=action_map.get(wp["action"], mes_pb2.ActionType.MOVE)
+                )
+                for wp in plan["waypoints"]
+            ]
+
+            return mes_pb2.DispatchResponse(
+                success=True,
+                message=plan["message"],
+                waypoints=waypoints
+            )
+        except Exception as e:
+            logger.error(f"Loi gRPC ReplanAGV: {str(e)}")
+            return mes_pb2.DispatchResponse(success=False, message=str(e))
