@@ -88,3 +88,32 @@ class SlotAllocationService:
             logger.error(f"Lỗi không xác định khi cấp phát slot: {str(e)}")
             return AllocationResult(success=False, message="Lỗi hệ thống nội bộ", error_code="INTERNAL_ERROR")
 
+    async def free_slot(self, warehouse_id: str, slot_id: str) -> bool:
+        """
+        Giải phóng một slot bằng cách đặt is_occupied = False.
+        """
+        try:
+            cache_key = f"warehouse:{warehouse_id}:slots"
+            slots_data = await self.cache.get_direct(cache_key)
+            if not slots_data:
+                logger.warning(f"FreeSlot: Không tìm thấy data kho {warehouse_id}")
+                return False
+
+            updated = False
+            for slot_entry in slots_data:
+                if slot_entry.get("slot_id") == slot_id:
+                    slot_entry["is_occupied"] = False
+                    updated = True
+                    break
+            
+            if updated:
+                await self.cache.set_direct(cache_key, slots_data, ttl=86400)
+                logger.info(f"Đã giải phóng slot {slot_id} của kho {warehouse_id}")
+                return True
+            else:
+                logger.warning(f"FreeSlot: Không tìm thấy slot {slot_id} trong kho {warehouse_id}")
+                return False
+        except Exception as e:
+            logger.error(f"Lỗi FreeSlot: {str(e)}")
+            return False
+

@@ -77,6 +77,23 @@ class SlotAllocationHandler(mes_pb2_grpc.SlotAllocationServiceServicer):
                 error_code="INTERNAL_ERROR"
             )
 
+    async def FreeSlot(self, request, context):
+        """
+        Hàm giải phóng slot khi có lỗi AGV.
+        """
+        warehouse_id = request.warehouse_id
+        slot_id = request.slot_id
+        
+        logger.info(f"gRPC Request: FreeSlot {slot_id} tại kho {warehouse_id}")
+        try:
+            success = await self.slot_service.free_slot(warehouse_id, slot_id)
+            return mes_pb2.FreeSlotResponse(
+                success=success,
+                message="Giải phóng slot thành công" if success else "Giải phóng slot thất bại"
+            )
+        except Exception as e:
+            logger.error(f"Lỗi gRPC FreeSlot: {str(e)}")
+            return mes_pb2.FreeSlotResponse(success=False, message=str(e))
 
 class DispatchHandler(mes_pb2_grpc.DispatchServiceServicer):
     def __init__(self):
